@@ -56,8 +56,17 @@ func deleteMovie(w http.ResponseWriter, r *http.Request) {
 
 func createMovie(w http.ResponseWriter, r *http.Request) {
 	var movie Movie
+	var alreadyPresent bool
 	_ = json.NewDecoder(r.Body).Decode(&movie)
-	movies = append(movies, movie)
+	for _, v := range movies {
+		if v.ID == movie.ID {
+	 		alreadyPresent = true
+	 		break
+		}
+	}
+	if !alreadyPresent {
+		movies = append(movies, movie)
+	}
 	json.NewEncoder(w).Encode(movie)
 }
 
