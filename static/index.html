@@ -1,0 +1,140 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8" />
+    <title>Go Movie CRUD</title>
+    <link rel="stylesheet" href="/style.css" />
+</head>
+<body>
+<div class="container">
+    <img src="/images/logo.png" class="logo" alt="Logo" />
+    <h1>🎬 Movie List</h1>
+
+    <div id="movie-list"></div>
+
+    <h2>Add Movie</h2>
+    <form id="create-form">
+        <input name="id" placeholder="ID" required />
+        <input name="isbn" placeholder="ISBN" required />
+        <input name="title" placeholder="Title" required />
+        <input name="firstName" placeholder="Director First Name" required />
+        <input name="lastName" placeholder="Director Last Name" required />
+        <button type="submit">Add Movie</button>
+    </form>
+</div>
+
+<!-- Modal -->
+<div id="edit-modal" class="modal">
+    <div class="modal-content">
+        <span class="close-btn" onclick="closeModal()">&times;</span>
+        <h2>Edit Movie</h2>
+        <form id="edit-form">
+            <input name="id" disabled />
+            <input name="isbn" required />
+            <input name="title" required />
+            <input name="firstName" required />
+            <input name="lastName" required />
+            <button type="submit">Update</button>
+        </form>
+    </div>
+</div>
+
+<script>
+    let currentEditId = null;
+
+    async function fetchMovies() {
+        const res = await fetch('/movies');
+        const movies = await res.json();
+        const list = document.getElementById('movie-list');
+        list.innerHTML = '';
+        movies.forEach(movie => {
+            const div = document.createElement('div');
+            div.className = 'movie';
+            div.innerHTML = `
+          <strong>${movie.Title}</strong> (ISBN: ${movie.ISBN})<br />
+          Director: ${movie.Director.FirstName} ${movie.Director.LastName}<br />
+          <button onclick="openEditModal('${movie.ID}')">Edit</button>
+          <button onclick="deleteMovie('${movie.ID}')">Delete</button>
+        `;
+            list.appendChild(div);
+        });
+    }
+
+    document.getElementById('create-form').addEventListener('submit', async (e) => {
+        e.preventDefault();
+        const form = e.target;
+        const movie = {
+            ID: form.id.value,
+            ISBN: parseInt(form.isbn.value),
+            Title: form.title.value,
+            Director: {
+                FirstName: form.firstName.value,
+                LastName: form.lastName.value
+            }
+        };
+
+        await fetch('/movies', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify(movie)
+        });
+
+        form.reset();
+        fetchMovies();
+    });
+
+    function openEditModal(id) {
+        fetch('/movies')
+            .then(res => res.json())
+            .then(movies => {
+                const movie = movies.find(m => m.ID === id);
+                if (!movie) return;
+
+                const form = document.forms['edit-form'];
+                form.id.value = movie.ID;
+                form.isbn.value = movie.ISBN;
+                form.title.value = movie.Title;
+                form.firstName.value = movie.Director.FirstName;
+                form.lastName.value = movie.Director.LastName;
+
+                currentEditId = movie.ID;
+                document.getElementById('edit-modal').style.display = 'block';
+            });
+    }
+
+    function closeModal() {
+        document.getElementById('edit-modal').style.display = 'none';
+    }
+
+    document.getElementById('edit-form').addEventListener('submit', async (e) => {
+        e.preventDefault();
+        const form = e.target;
+        const movie = {
+            ID: form.id.value,
+            ISBN: parseInt(form.isbn.value),
+            Title: form.title.value,
+            Director: {
+                FirstName: form.firstName.value,
+                LastName: form.lastName.value
+            }
+        };
+
+        await fetch(`/movies/${currentEditId}`, {
+            method: 'PUT',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify(movie)
+        });
+
+        closeModal();
+        fetchMovies();
+    });
+
+    async function deleteMovie(id) {
+        await fetch(`/movies/${id}`, { method: 'DELETE' });
+        fetchMovies();
+    }
+
+    fetchMovies();
+</script>
+</body>
+</html>
